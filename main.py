@@ -1,9 +1,10 @@
-import hmac
 import hashlib
-import json
-from fastapi import FastAPI, Request, HTTPException, Response
+import hmac
+
+import orjson
+from fastapi import FastAPI, HTTPException, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 from pydantic_settings import BaseSettings
-from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 
 class Settings(BaseSettings):
@@ -55,17 +56,17 @@ async def webhook_github(request: Request):
             ).inc()
             raise HTTPException(status_code=401, detail="Invalid signature")
 
-        payload = json.loads(payload_body)
-        print(json.dumps(payload, indent=2))
+        payload = orjson.loads(payload_body)
+        print(orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode('utf-8'))
 
         WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
         return {"status": "success"}
-    except json.JSONDecodeError:
+    except orjson.JSONDecodeError as err:
         WEBHOOK_SUBMISSIONS.labels(status="invalid_json", event_type=event_type).inc()
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
-    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from err
+    except Exception as err:
         WEBHOOK_SUBMISSIONS.labels(status="error", event_type=event_type).inc()
-        raise
+        raise err from err
 
 
 @app.get("/metrics")
