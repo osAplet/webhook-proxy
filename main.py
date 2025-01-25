@@ -57,7 +57,7 @@ async def webhook_github(request: Request):
             raise HTTPException(status_code=401, detail="Invalid signature")
 
         payload = orjson.loads(payload_body)
-        print(orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode('utf-8'))
+        print(orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"))
 
         WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
         return {"status": "success"}
@@ -72,3 +72,8 @@ async def webhook_github(request: Request):
 @app.get("/metrics")
 async def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/status", include_in_schema=False)
+async def status():
+    return {"status": "ok"}
