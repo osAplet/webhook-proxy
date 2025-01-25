@@ -1,0 +1,4 @@
+fastapi
+prometheus-client
+pydantic-settings
+uvicorn
