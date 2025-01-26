@@ -37,6 +37,26 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
     message = CurrentMessage.get_current_message()
 
     try:
+        if event_type == "pull_request" and payload.get("action") == "opened":
+            repo = payload["repository"]["full_name"]
+            sha = payload["pull_request"]["head"]["sha"]
+
+            with httpx.Client() as client:
+                response = client.post(
+                    f"https://api.github.com/repos/{repo}/statuses/{sha}",
+                    headers={
+                        "Accept": "application/vnd.github.v3+json",
+                        "Authorization": f"token {settings.github_token}",
+                    },
+                    json={
+                        "state": "pending",
+                        "context": "builds/x86_64",
+                        "description": "Build pending",
+                    },
+                    timeout=10.0,
+                )
+                response.raise_for_status()
+
         with target_circuit.acquire():
             payload_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
             signature = hmac.new(
