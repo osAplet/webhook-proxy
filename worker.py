@@ -4,16 +4,15 @@ import dramatiq
 import httpx
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq.middleware import CurrentMessage
-from dramatiq.rate_limits.backends import RedisBackend
 from prometheus_client import Counter
 
-from circuit_breaker import CircuitBreaker
+from circuit_breaker import CircuitBreaker, RedisBackend
 from main import settings
 
 redis_broker = RedisBroker(url=settings.redis_url)
 dramatiq.set_broker(redis_broker)
 
-redis_backend = RedisBackend()
+redis_backend = RedisBackend(url=settings.redis_url)
 target_circuit = CircuitBreaker(
     backend=redis_backend,
     key="target-service",

@@ -2,6 +2,28 @@ import time
 from contextlib import contextmanager
 from enum import Enum
 
+import redis
+
+
+class RedisBackend:
+    """Redis backend for circuit breaker state storage."""
+
+    def __init__(self, redis_client=None, url=None):
+        if redis_client:
+            self.redis = redis_client
+        else:
+            self.redis = redis.Redis.from_url(url or "redis://localhost:6379/0")
+
+    def get(self, key):
+        value = self.redis.get(key)
+        return value.decode("utf-8") if value else None
+
+    def set(self, key, value):
+        self.redis.set(key, value)
+
+    def delete(self, key):
+        self.redis.delete(key)
+
 
 class CircuitState(Enum):
     CLOSED = "closed"  # Circuit is closed, requests flow normally
