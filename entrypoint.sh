@@ -9,7 +9,7 @@ case "${1:-}" in
         exec dramatiq-gevent worker:redis_broker \
             --processes 1 \
             --threads 1 \
-            --queues webhooks
+            --verbose
         ;;
     *)
         # Execute remaining arguments
