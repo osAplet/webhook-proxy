@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import json
 from typing import Any, Dict
 
 import dramatiq
@@ -35,12 +38,20 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
 
     try:
         with target_circuit.acquire():
+            payload_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
+            signature = hmac.new(
+                settings.target_service_secret.encode("utf-8"),
+                payload_bytes,
+                hashlib.sha256,
+            ).hexdigest()
+
             with httpx.Client() as client:
                 response = client.post(
                     settings.target_service_url,
                     json=payload,
                     headers={
                         "X-GitHub-Event": event_type,
+                        "X-Hub-Signature-256": f"sha256={signature}",
                     },
                     timeout=30.0,
                 )

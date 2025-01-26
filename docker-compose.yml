@@ -8,6 +8,7 @@ services:
       - GITHUB_WEBHOOK_SECRET=secret
       - REDIS_URL=redis://redis:6379/0
       - TARGET_SERVICE_URL=http://webhook-tester:8080/org/94acbf8b-5172-4dd2-8773-90e37da962d0
+      - TARGET_SERVICE_SECRET=target-secret
     depends_on:
       - redis
 
