@@ -10,6 +10,7 @@ from circuit_breaker import CircuitBreaker, RedisBackend
 from main import settings
 
 redis_broker = RedisBroker(url=settings.redis_url)
+redis_broker.add_middleware(CurrentMessage())
 dramatiq.set_broker(redis_broker)
 
 redis_backend = RedisBackend(url=settings.redis_url)
