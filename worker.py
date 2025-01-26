@@ -39,7 +39,10 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                 response = client.post(
                     settings.target_service_url,
                     json=payload,
-                    headers={"X-GitHub-Event": event_type},
+                    headers={
+                        "X-GitHub-Event": event_type,
+                        "Content-Type": "application/json"
+                    },
                     timeout=30.0,
                 )
                 response.raise_for_status()
