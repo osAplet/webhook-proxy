@@ -12,9 +12,6 @@ class Settings(BaseSettings):
     github_webhook_secret: str
     redis_url: str = "redis://localhost:6379/0"
     target_service_url: str
-    max_retries: int = 10
-    min_backoff: int = 5000
-    max_backoff: int = 600000
 
 
 settings = Settings()
