@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+from datetime import datetime
 
 import orjson
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -9,6 +10,11 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     github_webhook_secret: str
+    redis_url: str = "redis://localhost:6379/0"
+    target_service_url: str
+    max_retries: int = 10
+    min_backoff: int = 5000
+    max_backoff: int = 600000
 
 
 settings = Settings()
@@ -57,10 +63,19 @@ async def webhook_github(request: Request):
             raise HTTPException(status_code=401, detail="Invalid signature")
 
         payload = orjson.loads(payload_body)
-        print(orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode("utf-8"))
+
+        # Import here to avoid circular imports
+        from worker import forward_webhook
+
+        webhook_data = {
+            "payload": payload,
+            "event_type": event_type,
+            "received_at": datetime.utcnow().isoformat(),
+        }
+        forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
 
         WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
-        return {"status": "success"}
+        return {"status": "queued"}
     except orjson.JSONDecodeError as err:
         WEBHOOK_SUBMISSIONS.labels(status="invalid_json", event_type=event_type).inc()
         raise HTTPException(status_code=400, detail="Invalid JSON payload") from err

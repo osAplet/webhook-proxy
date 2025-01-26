@@ -3,7 +3,12 @@ FROM python:3.12-slim
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
+COPY main.py worker.py entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+
+ENV REDIS_URL=redis://redis:6379/0
 
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 
+
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["web"]

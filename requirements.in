@@ -3,3 +3,6 @@ orjson
 prometheus-client
 pydantic-settings
 uvicorn
+dramatiq[redis]
+httpx
+gevent

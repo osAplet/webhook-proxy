@@ -1,0 +1,31 @@
+services:
+  web:
+    build: .
+    command: web
+    ports:
+      - "8000:8000"
+    environment: &env
+      - GITHUB_WEBHOOK_SECRET=secret
+      - REDIS_URL=redis://redis:6379/0
+      - TARGET_SERVICE_URL=http://webhook-tester:8080/org/94acbf8b-5172-4dd2-8773-90e37da962d0
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: worker
+    environment: *env
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+
+  webhook-tester:
+    image: ghcr.io/tarampampam/webhook-tester:2
+    ports:
+      - "8080:8080"
+
+volumes:
+  redis_data: 
