@@ -41,7 +41,6 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                     json=payload,
                     headers={
                         "X-GitHub-Event": event_type,
-                        "Content-Type": "application/json"
                     },
                     timeout=30.0,
                 )
@@ -50,5 +49,5 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
 
     except Exception as e:
         WEBHOOK_FORWARDS.labels(status="error").inc()
-        print(f"Error forwarding webhook (attempt {message.retries}): {str(e)}")
+        print(f"Error forwarding webhook (attempt {message.message.retries}): {str(e)}")
         raise
