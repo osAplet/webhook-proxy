@@ -88,5 +88,5 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
 
     except Exception as e:
         WEBHOOK_FORWARDS.labels(status="error").inc()
-        print(f"Error forwarding webhook (attempt {message.message.retries}): {str(e)}")
+        print(f"Error forwarding webhook: {str(e)}")
         raise
