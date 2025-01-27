@@ -1,8 +1,9 @@
+dramatiq[redis]
 fastapi
+gevent
+httpx
 orjson
 prometheus-client
 pydantic-settings
+sentry-sdk[fastapi]
 uvicorn
-dramatiq[redis]
-httpx
-gevent

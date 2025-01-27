@@ -5,12 +5,20 @@ from typing import Any, Dict
 
 import dramatiq
 import httpx
+import sentry_sdk
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq.middleware import CurrentMessage
 from prometheus_client import Counter
+from sentry_sdk.integrations.dramatiq import DramatiqIntegration
 
 from circuit_breaker import CircuitBreaker, RedisBackend
 from main import settings
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        integrations=[DramatiqIntegration()],
+    )
 
 redis_broker = RedisBroker(url=settings.redis_url)
 redis_broker.add_middleware(CurrentMessage())

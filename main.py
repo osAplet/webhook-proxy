@@ -3,20 +3,31 @@ import hmac
 from datetime import datetime
 
 import orjson
+import sentry_sdk
 from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 from pydantic_settings import BaseSettings
+from typing_extensions import Optional
 
 
 class Settings(BaseSettings):
     github_webhook_secret: str
     github_token: str
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str
     target_service_url: str
     target_service_secret: str
+    sentry_dsn: Optional[str] = None
 
 
 settings = Settings()
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+
 app = FastAPI()
 
 WEBHOOK_SUBMISSIONS = Counter(
