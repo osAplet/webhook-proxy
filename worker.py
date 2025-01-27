@@ -67,10 +67,16 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
 
         with target_circuit.acquire():
             payload_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
-            signature = hmac.new(
+            signature_sha1 = hmac.new(
                 settings.target_service_secret.encode("utf-8"),
                 payload_bytes,
-                hashlib.sha256,
+                hashlib.sha1
+            ).hexdigest()
+
+            signature_sha256 = hmac.new(
+                settings.target_service_secret.encode("utf-8"),
+                payload_bytes,
+                hashlib.sha256
             ).hexdigest()
 
             with httpx.Client() as client:
@@ -79,7 +85,8 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                     json=payload,
                     headers={
                         "X-GitHub-Event": event_type,
-                        "X-Hub-Signature-256": f"sha256={signature}",
+                        "X-Hub-Signature": f"sha1={signature_sha1}",
+                        "X-Hub-Signature-256": f"sha256={signature_sha256}",
                     },
                     timeout=30.0,
                 )
