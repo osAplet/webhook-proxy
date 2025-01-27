@@ -82,12 +82,7 @@ async def webhook_github(request: Request):
             "event_type": event_type,
             "received_at": datetime.utcnow().isoformat(),
         }
-        forward_webhook.send(
-            webhook_data["payload"],
-            webhook_data["event_type"],
-            request.headers.get("X-Hub-Signature"),
-            request.headers.get("X-Hub-Signature-256"),
-        )
+        forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
 
         WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
         return {"status": "queued"}
