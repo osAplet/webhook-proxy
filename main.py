@@ -75,7 +75,7 @@ async def webhook_github(request: Request):
         payload = orjson.loads(payload_body)
 
         # Import here to avoid circular imports
-        from worker import forward_webhook
+        from worker import forward_webhook, update_ci_status
 
         webhook_data = {
             "payload": payload,
@@ -84,11 +84,18 @@ async def webhook_github(request: Request):
         }
 
         should_forward = False
+        should_update_ci = False
+        repo = payload.get("repository", {}).get("full_name")
 
         if event_type == "pull_request":
             should_forward = payload.get("action") == "opened"
+            if should_forward:
+                should_update_ci = True
+                sha = payload["pull_request"]["head"]["sha"]
         elif event_type == "push":
             should_forward = True
+            should_update_ci = True
+            sha = payload["after"]
         elif (
             event_type == "issue_comment" or event_type == "pull_request_review_comment"
         ):
@@ -97,6 +104,8 @@ async def webhook_github(request: Request):
 
         if should_forward:
             forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
+            if should_update_ci and repo and sha:
+                update_ci_status.send(repo, sha)
             WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
             return {"status": "queued"}
         else:

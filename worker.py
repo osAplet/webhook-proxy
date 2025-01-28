@@ -7,7 +7,6 @@ import dramatiq
 import httpx
 import sentry_sdk
 from dramatiq.brokers.redis import RedisBroker
-from dramatiq.middleware import CurrentMessage
 from prometheus_client import Counter
 from sentry_sdk.integrations.dramatiq import DramatiqIntegration
 
@@ -21,7 +20,6 @@ if settings.sentry_dsn:
     )
 
 redis_broker = RedisBroker(url=settings.redis_url)
-redis_broker.add_middleware(CurrentMessage())
 dramatiq.set_broker(redis_broker)
 
 redis_backend = RedisBackend(url=settings.redis_url)
@@ -40,43 +38,44 @@ WEBHOOK_FORWARDS = Counter(
 )
 
 
-@dramatiq.actor
-def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
-    message = CurrentMessage.get_current_message()
-
+@dramatiq.actor(priority=0)
+def update_ci_status(repo: str, sha: str) -> None:
     try:
-        if event_type == "pull_request" and payload.get("action") == "opened":
-            repo = payload["repository"]["full_name"]
-            sha = payload["pull_request"]["head"]["sha"]
+        with httpx.Client() as client:
+            response = client.post(
+                f"https://api.github.com/repos/{repo}/statuses/{sha}",
+                headers={
+                    "Accept": "application/vnd.github.v3+json",
+                    "Authorization": f"token {settings.github_token}",
+                },
+                json={
+                    "state": "pending",
+                    "context": "builds/x86_64",
+                    "description": "Build pending",
+                },
+                timeout=10.0,
+            )
+            response.raise_for_status()
+    except Exception as e:
+        print(f"Error updating CI status: {str(e)}")
+        raise
 
-            with httpx.Client() as client:
-                response = client.post(
-                    f"https://api.github.com/repos/{repo}/statuses/{sha}",
-                    headers={
-                        "Accept": "application/vnd.github.v3+json",
-                        "Authorization": f"token {settings.github_token}",
-                    },
-                    json={
-                        "state": "pending",
-                        "context": "builds/x86_64",
-                        "description": "Build pending",
-                    },
-                    timeout=10.0,
-                )
-                response.raise_for_status()
 
+@dramatiq.actor(priority=10)
+def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
+    try:
         with target_circuit.acquire():
             payload_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
             signature_sha1 = hmac.new(
                 settings.target_service_secret.encode("utf-8"),
                 payload_bytes,
-                hashlib.sha1
+                hashlib.sha1,
             ).hexdigest()
 
             signature_sha256 = hmac.new(
                 settings.target_service_secret.encode("utf-8"),
                 payload_bytes,
-                hashlib.sha256
+                hashlib.sha256,
             ).hexdigest()
 
             with httpx.Client() as client:
