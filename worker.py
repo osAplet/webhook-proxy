@@ -57,6 +57,9 @@ def update_ci_status(repo: str, sha: str) -> None:
             )
             response.raise_for_status()
     except Exception as e:
+        sentry_sdk.set_context(
+            "github_api", {"repo": repo, "sha": sha, "operation": "update_ci_status"}
+        )
         print(f"Error updating CI status: {str(e)}")
         raise
 
@@ -94,5 +97,14 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
 
     except Exception as e:
         WEBHOOK_FORWARDS.labels(status="error").inc()
+        sentry_sdk.set_context(
+            "webhook_forward",
+            {
+                "event_type": event_type,
+                "target_url": settings.target_service_url,
+                "circuit_breaker_state": target_circuit.get_state(),
+                "payload_size": len(json.dumps(payload)),
+            },
+        )
         print(f"Error forwarding webhook: {str(e)}")
         raise
