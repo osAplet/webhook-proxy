@@ -82,10 +82,27 @@ async def webhook_github(request: Request):
             "event_type": event_type,
             "received_at": datetime.utcnow().isoformat(),
         }
-        forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
 
-        WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
-        return {"status": "queued"}
+        should_forward = False
+
+        if event_type == "pull_request":
+            should_forward = payload.get("action") == "opened"
+        elif event_type == "push":
+            should_forward = True
+        elif (
+            event_type == "issue_comment" or event_type == "pull_request_review_comment"
+        ):
+            comment_body = payload.get("comment", {}).get("body", "").strip()
+            should_forward = comment_body.startswith(("/", "bot,"))
+
+        if should_forward:
+            forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
+            WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
+            return {"status": "queued"}
+        else:
+            WEBHOOK_SUBMISSIONS.labels(status="filtered", event_type=event_type).inc()
+            return {"status": "filtered"}
+
     except orjson.JSONDecodeError as err:
         WEBHOOK_SUBMISSIONS.labels(status="invalid_json", event_type=event_type).inc()
         raise HTTPException(status_code=400, detail="Invalid JSON payload") from err
