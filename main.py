@@ -84,19 +84,15 @@ async def webhook_github(request: Request):
         }
 
         should_forward = False
-        should_update_ci = False
-        repo = payload.get("repository", {}).get("full_name")
 
         if event_type == "pull_request":
             should_forward = payload.get("action") == "opened"
             if should_forward:
-                should_update_ci = True
+                repo = payload.get("repository", {}).get("full_name")
                 sha = payload["pull_request"]["head"]["sha"]
+                update_ci_status.send(repo, sha)
         elif event_type == "push":
             should_forward = True
-            # Only update CI status for non-deletion events
-            sha = payload.get("after")
-            should_update_ci = sha and not all(c == "0" for c in sha)
         elif (
             event_type == "issue_comment" or event_type == "pull_request_review_comment"
         ):
@@ -105,8 +101,6 @@ async def webhook_github(request: Request):
 
         if should_forward:
             forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
-            if should_update_ci and repo and sha:
-                update_ci_status.send(repo, sha)
             WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
             return {"status": "queued"}
         else:
