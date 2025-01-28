@@ -94,8 +94,9 @@ async def webhook_github(request: Request):
                 sha = payload["pull_request"]["head"]["sha"]
         elif event_type == "push":
             should_forward = True
-            should_update_ci = True
-            sha = payload["after"]
+            # Only update CI status for non-deletion events
+            sha = payload.get("after")
+            should_update_ci = sha and not all(c == "0" for c in sha)
         elif (
             event_type == "issue_comment" or event_type == "pull_request_review_comment"
         ):
