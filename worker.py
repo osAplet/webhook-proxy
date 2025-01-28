@@ -68,6 +68,21 @@ def update_ci_status(repo: str, sha: str) -> None:
 def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
     try:
         with target_circuit.acquire():
+            circuit_state = target_circuit.get_state()
+            if circuit_state == "half-open":
+                print(
+                    "Circuit breaker in half-open state for "
+                    f"{settings.target_service_url}, attempting recovery"
+                )
+                sentry_sdk.set_context(
+                    "circuit_breaker",
+                    {
+                        "state": "half-open",
+                        "target_url": settings.target_service_url,
+                        "event_type": event_type,
+                    },
+                )
+
             payload_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
             signature_sha1 = hmac.new(
                 settings.target_service_secret.encode("utf-8"),
