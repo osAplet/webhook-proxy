@@ -24,8 +24,8 @@ settings = Settings()
 if settings.sentry_dsn:
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
+        traces_sample_rate=0.01,
+        profiles_sample_rate=0.01,
     )
 
 app = FastAPI()
@@ -89,6 +89,7 @@ async def webhook_github(request: Request):
             update_ci_status.send(repo, sha)
 
         forward_webhook.send(webhook_data["payload"], webhook_data["event_type"])
+
         WEBHOOK_SUBMISSIONS.labels(status="success", event_type=event_type).inc()
         return {"status": "queued"}
 
