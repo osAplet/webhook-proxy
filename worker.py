@@ -105,7 +105,7 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                         "X-Hub-Signature": f"sha1={signature_sha1}",
                         "X-Hub-Signature-256": f"sha256={signature_sha256}",
                     },
-                    timeout=30.0,
+                    timeout=60.0,
                 )
                 print(f"Target service response: {response.status_code} - {response.text}")
                 response.raise_for_status()
