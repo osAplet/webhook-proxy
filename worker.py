@@ -107,6 +107,7 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                     },
                     timeout=30.0,
                 )
+                print(f"Target service response: {response.status_code} - {response.text}")
                 response.raise_for_status()
                 WEBHOOK_FORWARDS.labels(status="success").inc()
 
