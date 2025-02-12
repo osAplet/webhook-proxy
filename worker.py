@@ -107,11 +107,13 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                     },
                     timeout=60.0,
                 )
-                print(f"Target service response: {response.status_code} - {response.text}")
+                print(
+                    f"Target service response: {response.status_code} - {response.text}"
+                )
                 response.raise_for_status()
                 WEBHOOK_FORWARDS.labels(status="success").inc()
 
-    except Exception as e:
+    except Exception:
         WEBHOOK_FORWARDS.labels(status="error").inc()
         sentry_sdk.set_context(
             "webhook_forward",
