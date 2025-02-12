@@ -26,9 +26,9 @@ redis_backend = RedisBackend(url=settings.redis_url)
 target_circuit = CircuitBreaker(
     backend=redis_backend,
     key="target-service",
-    failure_threshold=5,
-    reset_timeout=60,
-    half_open_timeout=30,
+    failure_threshold=10,
+    reset_timeout=120,
+    half_open_timeout=60,
 )
 
 WEBHOOK_FORWARDS = Counter(
