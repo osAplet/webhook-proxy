@@ -122,5 +122,7 @@ def forward_webhook(payload: Dict[str, Any], event_type: str) -> None:
                 "payload_size": len(json.dumps(payload)),
             },
         )
-        print(f"Error forwarding webhook: {str(e)}")
+        sentry_sdk.set_tag("event_type", event_type)
+        if "pull_request" in payload:
+            sentry_sdk.set_tag("repo", payload.get("repository", {}).get("full_name"))
         raise
